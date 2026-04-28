@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -21,9 +22,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
 .logo{font-size:15px;font-weight:600;letter-spacing:-.3px;}
 .logo span{color:var(--text2);font-weight:400;}
-.user-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);}
+.user-row{display:flex;align-items:center;gap:8px;}
 .avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
 .role-tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:var(--bg);border:1px solid var(--border2);}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;}
+.sync-dot.ok{background:#22c55e;}
+.sync-dot.err{background:#ef4444;}
+.sync-dot.loading{background:#f59e0b;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 .page{padding:1.5rem;max-width:1000px;margin:0 auto;}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px;}
 .page-title{font-size:18px;font-weight:600;letter-spacing:-.3px;}
@@ -56,6 +62,7 @@ tbody tr:hover td{background:var(--bg);}
 .b-negoc{background:var(--purple-bg);color:var(--purple-fg);}
 .b-ganho{background:var(--success-bg);color:var(--success-fg);}
 .b-perdido{background:var(--danger-bg);color:var(--danger-fg);}
+.b-parado{background:#FEF0F0;color:#C0392B;}
 .status-select{border:none;background:transparent;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;padding:0;outline:none;width:100%;color:inherit;}
 .filter-row{display:flex;gap:6px;flex-wrap:wrap;}
 .fpill{padding:5px 14px;border-radius:100px;border:1px solid var(--border2);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
@@ -82,6 +89,9 @@ tbody tr:hover td{background:var(--bg);}
 .team-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;}
 .team-card.next-up{border-color:var(--text);border-width:1.5px;}
 .next-label{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;background:var(--text);color:#fff;padding:2px 8px;border-radius:100px;}
+.alert-row{background:#FEF0F0;border-left:3px solid #C0392B;border-radius:0 var(--radius) var(--radius) 0;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;font-size:13px;}
+.alert-name{font-weight:500;}
+.alert-days{font-size:12px;color:var(--danger-fg);font-weight:600;}
 .link-chip{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 12px;margin-top:6px;}
 .link-chip code{flex:1;font-size:12px;color:var(--text2);word-break:break-all;}
 .copy-btn{font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;}
@@ -107,6 +117,10 @@ a.tel:hover{text-decoration:underline;}
 .pin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;width:100%;max-width:340px;text-align:center;}
 .pin-card h2{font-size:18px;font-weight:600;margin-bottom:6px;}
 .pin-card p{font-size:13px;color:var(--text2);margin-bottom:20px;}
+.loading-screen{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 56px);flex-direction:column;gap:12px;}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.stale-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:#FEF0F0;color:#C0392B;margin-left:4px;}
 </style>
 </head>
 <body>
@@ -114,9 +128,18 @@ a.tel:hover{text-decoration:underline;}
 <div class="topbar">
   <div class="logo">leads<span>.app</span></div>
   <div class="user-row">
+    <div class="sync-dot" id="syncDot" title="Status da sincronização"></div>
     <div class="avatar" id="topAvatar" style="background:#EEF4FF;color:#1D4ED8">?</div>
     <span id="topName" style="font-size:13px;color:var(--text2)"></span>
     <span class="role-tag" id="roleTag"></span>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <div style="font-size:13px;color:var(--text2)">Carregando dados...</div>
   </div>
 </div>
 
@@ -140,19 +163,30 @@ a.tel:hover{text-decoration:underline;}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-secondary btn-sm" onclick="exportCSV()">↓ Exportar</button>
       <button class="btn btn-secondary btn-sm" onclick="document.getElementById('csvFile').click()">↑ Importar CSV</button>
+      <button class="btn btn-secondary btn-sm" onclick="loadFromSheets()">↺ Atualizar</button>
       <button class="btn btn-primary btn-sm" onclick="openLeadModal()">+ Novo lead</button>
       <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="importCSV(this)"/>
     </div>
   </div>
+
+  <div id="alertsSection" class="hidden">
+    <div class="card" style="border-color:#fca5a5;">
+      <div class="card-header"><div class="card-title" style="color:var(--danger-fg)">⚠ Leads parados há mais de 3 dias</div><span id="alertCount" class="badge b-perdido"></span></div>
+      <div id="alertsList"></div>
+    </div>
+  </div>
+
   <div class="metrics" id="gMetrics"></div>
+
   <div class="grid2">
     <div class="card"><div class="card-header"><div class="card-title">Funil</div></div><div id="funnelChart"></div></div>
     <div class="card"><div class="card-header"><div class="card-title">Ranking — ganhos</div></div><div id="rankingChart"></div></div>
   </div>
   <div class="grid2">
     <div class="card"><div class="card-header"><div class="card-title">Tempo médio por vendedor</div></div><div id="tempoChart"></div></div>
-    <div class="card"><div class="card-header"><div class="card-title">Leads por dia da semana</div></div><div id="dayChart"></div></div>
+    <div class="card"><div class="card-header"><div class="card-title">Atividade esta semana</div></div><div id="activityChart"></div></div>
   </div>
+
   <div class="card">
     <div class="card-header">
       <div class="card-title">Todos os leads</div>
@@ -165,16 +199,19 @@ a.tel:hover{text-decoration:underline;}
           <button class="fpill" onclick="setGFilter('Negociando',this)">Negoc.</button>
           <button class="fpill" onclick="setGFilter('Ganho',this)">Ganhos</button>
           <button class="fpill" onclick="setGFilter('Perdido',this)">Perdidos</button>
+          <button class="fpill" onclick="setGFilter('parado',this)" style="color:var(--danger-fg);border-color:#fca5a5;">Parados</button>
         </div>
       </div>
     </div>
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th style="width:19%">Nome</th><th style="width:15%">Telefone</th><th style="width:18%">Email</th>
-        <th style="width:13%">Responsável</th><th style="width:12%">Status</th><th style="width:7%">Dias</th><th style="width:16%">Obs.</th>
+        <th style="width:18%">Nome</th><th style="width:14%">Telefone</th><th style="width:16%">Email</th>
+        <th style="width:12%">Responsável</th><th style="width:11%">Status</th>
+        <th style="width:7%">Dias</th><th style="width:10%">Atualizado</th><th style="width:12%">Obs.</th>
       </tr></thead><tbody id="gLeadsBody"></tbody></table>
     </div>
   </div>
+
   <div class="card">
     <div class="card-header"><div class="card-title">Time &amp; links de acesso</div><button class="btn btn-secondary btn-sm" onclick="openTeamModal()">+ Vendedor</button></div>
     <div class="team-grid" id="teamGrid"></div>
@@ -189,6 +226,7 @@ a.tel:hover{text-decoration:underline;}
 <div class="page hidden" id="viewVendedor">
   <div class="page-header">
     <div><div class="page-title" id="vTitle">Meus leads</div><div class="page-sub" id="vSubtitle"></div></div>
+    <button class="btn btn-secondary btn-sm" onclick="loadFromSheets()">↺ Atualizar</button>
   </div>
   <div class="metrics" id="vMetrics"></div>
   <div class="card">
@@ -205,8 +243,8 @@ a.tel:hover{text-decoration:underline;}
     </div>
     <div class="tbl-wrap">
       <table><thead><tr>
-        <th style="width:25%">Nome</th><th style="width:18%">Telefone</th>
-        <th style="width:14%">Status</th><th style="width:8%">Dias</th><th style="width:35%">Observação</th>
+        <th style="width:24%">Nome</th><th style="width:17%">Telefone</th>
+        <th style="width:13%">Status</th><th style="width:8%">Dias</th><th style="width:38%">Observação</th>
       </tr></thead><tbody id="vLeadsBody"></tbody></table>
     </div>
   </div>
@@ -239,7 +277,7 @@ a.tel:hover{text-decoration:underline;}
   <div class="modal">
     <h3>Novo vendedor</h3>
     <div class="form-group"><label class="form-label">Nome</label><input class="form-input" id="tNome" placeholder="Nome completo"/></div>
-    <div class="form-group"><label class="form-label">Slug (link de acesso)</label><input class="form-input" id="tSlug" placeholder="ex: maria"/><div style="font-size:11px;color:var(--text2);margin-top:4px;">O link será: app.com?v=<strong id="slugPreview">…</strong></div></div>
+    <div class="form-group"><label class="form-label">Slug (link de acesso)</label><input class="form-input" id="tSlug" placeholder="ex: maria"/><div style="font-size:11px;color:var(--text2);margin-top:4px;">Link: app.com?v=<strong id="slugPreview">…</strong></div></div>
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeTeamModal()">Cancelar</button><button class="btn btn-primary" onclick="saveVendedor()">Adicionar</button></div>
   </div>
 </div>
@@ -247,10 +285,22 @@ a.tel:hover{text-decoration:underline;}
 <div class="toast" id="toast"></div>
 
 <script>
-const GESTOR_PIN='1234';
-const COLORS=[['#EEF4FF','#1D4ED8'],['#ECFDF5','#065F46'],['#FFFBEB','#92400E'],['#F5F3FF','#5B21B6'],['#FFF1F2','#9F1239'],['#F0F9FF','#075985']];
+// ── CONFIG ────────────────────────────────────────────────────────
+const GESTOR_PIN = '1234';
+const SHEET_URL  = 'https://script.google.com/macros/s/AKfycbyIln3H2XAFgPMrtjyq9FLleJgIVxcESGtY0VUpGGmu2DVAqDm2t6UStG8GEtdaW6Az/exec';
+const STALE_DAYS = 3; // leads parados há mais de X dias
 
-let team=[];
+const COLORS=[['#EEF4FF','#1D4ED8'],['#ECFDF5','#065F46'],['#FFFBEB','#92400E'],['#F5F3FF','#5B21B6'],['#FFF1F2','#9F1239'],['#F0F9FF','#075985'],['#FDF2F8','#9D174D']];
+
+let team=[
+  {name:'Caio Millioti',  slug:'caio'},
+  {name:'Maria Julia',    slug:'mariajulia'},
+  {name:'Leonardo Lima',  slug:'leonardo'},
+  {name:'Allan Santos',   slug:'allan'},
+  {name:'Kelly Abreu',    slug:'kelly'},
+  {name:'Gabriel Reis',   slug:'gabriel'},
+  {name:'Rafael Marsiglia',slug:'rafael'},
+];
 let leads=[];
 let rrIndex=0;
 let gStatusFilter='';
@@ -258,79 +308,106 @@ let vStatusFilter='';
 let currentRole='';
 let currentVendedor='';
 let editingIdx=null;
+let saveTimeout=null;
 
+// ── HELPERS ───────────────────────────────────────────────────────
 function cap(s){return s?s.trim().replace(/\b\w/g,(c,i,str)=>{const p=str[i-1];return(!p||p===' ')&&str[i-2]!=="'"?c.toUpperCase():c.toLowerCase()}):''}
 function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();}
 function teamColor(name){const i=team.findIndex(t=>t.name===name);return COLORS[(i<0?0:i)%COLORS.length];}
 function sClass(s){return {Novo:'b-novo','Em contato':'b-contato',Negociando:'b-negoc',Ganho:'b-ganho',Perdido:'b-perdido'}[s]||'b-novo';}
 function fmtPhone(p){if(!p)return '—';const n=p.replace(/\D/g,'');if(n.length>=12)return '+'+n.slice(0,2)+' ('+n.slice(2,4)+') '+n.slice(4,9)+'-'+n.slice(9);return p;}
 function today(){return new Date().toLocaleDateString('pt-BR');}
+function nowTs(){return new Date().toLocaleString('pt-BR');}
 function daysSince(d){try{const[dd,mm,yy]=d.split('/');return Math.max(0,Math.round((new Date()-new Date(yy,mm-1,dd))/86400000));}catch{return 0;}}
-function nextResp(){if(!team.length)return '';const v=team[rrIndex%team.length].name;rrIndex++;save();return v;}
+function daysSinceTs(ts){if(!ts)return 999;try{const d=new Date(ts.split(', ').reverse().join('T').replace(/(\d+)\/(\d+)\/(\d+)/,'$3-$2-$1'));return Math.max(0,Math.round((new Date()-d)/86400000));}catch{return 999;}}
+function nextResp(){if(!team.length)return '';const v=team[rrIndex%team.length].name;rrIndex++;return v;}
 function phoneKey(p){return(p||'').replace(/\D/g,'').slice(-9);}
 function slugify(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function toast(msg,dur=3000){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+function setSyncDot(state){const d=document.getElementById('syncDot');d.className='sync-dot'+(state?' '+state:'');}
 
-function save(){
-  localStorage.setItem('cl_leads',JSON.stringify(leads));
-  localStorage.setItem('cl_team',JSON.stringify(team));
-  localStorage.setItem('cl_rr',String(rrIndex));
-}
-
-function load(){
-  const lt=localStorage.getItem('cl_team');
-  const ll=localStorage.getItem('cl_leads');
-  const lr=localStorage.getItem('cl_rr');
-  if(lt)team=JSON.parse(lt);
-  if(ll)leads=JSON.parse(ll);
-  if(lr)rrIndex=parseInt(lr)||0;
-  if(!team.length){
-    team=[
-      {name:'Caio Millioti',slug:'caio'},
-      {name:'Maria Julia',slug:'mariajulia'},
-      {name:'Leonardo Lima',slug:'leonardo'},
-      {name:'Allan Santos',slug:'allan'},
-      {name:'Kelly Abreu',slug:'kelly'},
-      {name:'Gabriel Reis',slug:'gabriel'},
-      {name:'Rafael Marsiglia',slug:'rafael'},
-    ];
-  }
-  if(!leads.length){
-    const seed=[
-      {fn:'Paulo Augusto Alves',email:'paulo@casarini.com.br',phone:'5555119981356'},
-      {fn:'VICTOR LUCAS SANTOS ALVES',email:'brittolucas57@gmail.com',phone:'5511965036315'},
-      {fn:'clemerson santos Xavier',email:'clemersonxavier@gmail.com',phone:'5511934974531'},
-      {fn:'Marli Gonçalves',email:'marligon3001@gmail.com',phone:'5511991096546'},
-      {fn:'DENYS B DOS SANTOS',email:'denys_borges@hotmail.com',phone:'5511915519826'},
-      {fn:'Lourismar Silva Souza',email:'lourissilva.2018@gmail.com',phone:'5511972740349'},
-      {fn:'Marcio Toshikazu Furushima',email:'mtfurushima@hotmail.com',phone:'5511992935127'},
-      {fn:'Adelson Ribeiro da Silva',email:'ribeiroadelson67@gmail.com',phone:'5511980846335'},
-      {fn:'João Lucas',email:'jlcdemoraes@gmail.com',phone:'5511995774042'},
-      {fn:'Eli Ramos',email:'eli.ramos1090@hotmail.com',phone:'5511941119936'},
-      {fn:'Alan Santana',email:'alan-s-alves@hotmail.com',phone:'5511992491742'},
-      {fn:'Eloá Costa de Souza Nascimento',email:'eloa.cartorio@gmail.com',phone:'5511981958266'},
-      {fn:'Johnatan Santos',email:'joh_fa@hotmail.com',phone:'5511975261847'},
-      {fn:'Marcos Alan',email:'',phone:'5511973399339'},
-      {fn:'Abraao Silva',email:'abraaojs.dev@gmail.com',phone:'5511974142778'},
-      {fn:'VAGNER ALEXANDRE FELICIO',email:'vagnerfelicio@outlook.com',phone:'5511982512210'},
-      {fn:'Alexandre Borini',email:'alexandre_borini@hotmail.com',phone:'5511948945027'},
-      {fn:'ANDREA NOVAIS PEIXOTO',email:'andreanovais05@gmail.com',phone:'5511969184205'},
-      {fn:'Rogério José de melo',email:'rogeriomelojose@gmail.com',phone:'5511952517078'},
-      {fn:'Bruno',email:'bruno53137531@gmail.com',phone:'5511995884789'},
-      {fn:'Henrique Marques Pallioto',email:'henriquepallioto3@gmail.com',phone:'5517982006711'},
-      {fn:'pedro de Almeida neto',email:'pedroalmeidaneto34@gmail.com',phone:'5547991952870'},
-      {fn:'Ademar Santos',email:'joseademardoss@gmail.com',phone:'5519992782894'},
-    ];
-    seed.forEach(r=>{leads.push({nome:cap(r.fn),email:r.email,phone:r.phone,canal:'CSV',data:today(),resp:nextResp(),status:'Novo',obs:''});});
-    save();
+// ── SHEETS API ────────────────────────────────────────────────────
+async function loadFromSheets(){
+  setSyncDot('loading');
+  try{
+    const res=await fetch(SHEET_URL+'?t='+Date.now());
+    const data=await res.json();
+    if(Array.isArray(data)&&data.length>0){
+      leads=data.map(r=>({
+        nome:r.nome||'',email:r.email||'',phone:r.phone||'',
+        canal:r.canal||'',data:r.data||today(),resp:r.resp||'',
+        status:r.status||'Novo',obs:r.obs||'',updatedAt:r.updatedAt||''
+      }));
+      // sync rrIndex
+      rrIndex=leads.length%team.length;
+    }
+    setSyncDot('ok');
+    return true;
+  }catch(e){
+    setSyncDot('err');
+    toast('Erro ao carregar dados do Sheets.');
+    return false;
   }
 }
 
-function route(){
-  load();
+async function saveToSheets(){
+  setSyncDot('loading');
+  try{
+    await fetch(SHEET_URL,{
+      method:'POST',
+      body:JSON.stringify({action:'save',leads}),
+    });
+    setSyncDot('ok');
+  }catch(e){
+    setSyncDot('err');
+    toast('Erro ao salvar no Sheets — tente novamente.');
+  }
+}
+
+function scheduleSave(){
+  clearTimeout(saveTimeout);
+  saveTimeout=setTimeout(()=>saveToSheets(),1200);
+}
+
+// ── SEED DATA (first load only) ───────────────────────────────────
+function seedLeads(){
+  const seed=[
+    {fn:'Paulo Augusto Alves',email:'paulo@casarini.com.br',phone:'5555119981356'},
+    {fn:'VICTOR LUCAS SANTOS ALVES',email:'brittolucas57@gmail.com',phone:'5511965036315'},
+    {fn:'clemerson santos Xavier',email:'clemersonxavier@gmail.com',phone:'5511934974531'},
+    {fn:'Marli Gonçalves',email:'marligon3001@gmail.com',phone:'5511991096546'},
+    {fn:'DENYS B DOS SANTOS',email:'denys_borges@hotmail.com',phone:'5511915519826'},
+    {fn:'Lourismar Silva Souza',email:'lourissilva.2018@gmail.com',phone:'5511972740349'},
+    {fn:'Marcio Toshikazu Furushima',email:'mtfurushima@hotmail.com',phone:'5511992935127'},
+    {fn:'Adelson Ribeiro da Silva',email:'ribeiroadelson67@gmail.com',phone:'5511980846335'},
+    {fn:'João Lucas',email:'jlcdemoraes@gmail.com',phone:'5511995774042'},
+    {fn:'Eli Ramos',email:'eli.ramos1090@hotmail.com',phone:'5511941119936'},
+    {fn:'Alan Santana',email:'alan-s-alves@hotmail.com',phone:'5511992491742'},
+    {fn:'Eloá Costa de Souza Nascimento',email:'eloa.cartorio@gmail.com',phone:'5511981958266'},
+    {fn:'Johnatan Santos',email:'joh_fa@hotmail.com',phone:'5511975261847'},
+    {fn:'Marcos Alan',email:'',phone:'5511973399339'},
+    {fn:'Abraao Silva',email:'abraaojs.dev@gmail.com',phone:'5511974142778'},
+    {fn:'VAGNER ALEXANDRE FELICIO',email:'vagnerfelicio@outlook.com',phone:'5511982512210'},
+    {fn:'Alexandre Borini',email:'alexandre_borini@hotmail.com',phone:'5511948945027'},
+    {fn:'ANDREA NOVAIS PEIXOTO',email:'andreanovais05@gmail.com',phone:'5511969184205'},
+    {fn:'Rogério José de melo',email:'rogeriomelojose@gmail.com',phone:'5511952517078'},
+    {fn:'Bruno',email:'bruno53137531@gmail.com',phone:'5511995884789'},
+    {fn:'Henrique Marques Pallioto',email:'henriquepallioto3@gmail.com',phone:'5517982006711'},
+    {fn:'pedro de Almeida neto',email:'pedroalmeidaneto34@gmail.com',phone:'5547991952870'},
+    {fn:'Ademar Santos',email:'joseademardoss@gmail.com',phone:'5519992782894'},
+  ];
+  seed.forEach(r=>{leads.push({nome:cap(r.fn),email:r.email,phone:r.phone,canal:'CSV',data:today(),resp:nextResp(),status:'Novo',obs:'',updatedAt:nowTs()});});
+  return saveToSheets();
+}
+
+// ── ROUTING ───────────────────────────────────────────────────────
+async function route(){
+  showScreen('loadingScreen');
   const params=new URLSearchParams(window.location.search);
   const vSlug=params.get('v');
-  const gParam=params.get('gestor');
+
+  const loaded=await loadFromSheets();
+
   if(vSlug){
     const member=team.find(t=>t.slug===vSlug.toLowerCase());
     if(!member){showScreen('viewDenied');return;}
@@ -338,13 +415,21 @@ function route(){
     setTopbar(member.name,'Vendedor',teamColor(member.name));
     showScreen('viewVendedor');renderVendedor();
   } else {
+    // gestor — seed if empty
+    if(loaded&&leads.length===0){
+      toast('Primeira vez — carregando leads iniciais...');
+      await seedLeads();
+    }
     showScreen('pinScreen');
     setTimeout(()=>document.getElementById('pinInput').focus(),100);
   }
 }
 
 function showScreen(id){
-  ['pinScreen','viewGestor','viewVendedor','viewDenied'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));
+  ['loadingScreen','pinScreen','viewGestor','viewVendedor','viewDenied'].forEach(s=>{
+    const el=document.getElementById(s);
+    if(el)el.classList.toggle('hidden',s!==id);
+  });
 }
 
 function checkPin(){
@@ -368,9 +453,10 @@ function setTopbar(name,role,colors){
   document.getElementById('roleTag').textContent=role;
 }
 
+// ── GESTOR ────────────────────────────────────────────────────────
 function renderGestor(){
-  buildGSelects();renderGMetrics();renderFunnel();renderRanking();
-  renderTempo();renderDayChart();renderGLeads();renderTeam();renderLinks();
+  buildGSelects();renderAlerts();renderGMetrics();renderFunnel();
+  renderRanking();renderTempo();renderActivity();renderGLeads();renderTeam();renderLinks();
   document.getElementById('gSubtitle').textContent=leads.length+' leads · '+team.length+' vendedores';
 }
 
@@ -379,17 +465,31 @@ function buildGSelects(){
   document.getElementById('mResp').innerHTML=team.map(v=>`<option>${v.name}</option>`).join('');
 }
 
+// ALERTAS: leads parados há mais de STALE_DAYS sem atualização
+function renderAlerts(){
+  const stale=leads.filter(l=>!['Ganho','Perdido'].includes(l.status)&&daysSinceTs(l.updatedAt)>=STALE_DAYS);
+  const sec=document.getElementById('alertsSection');
+  if(!stale.length){sec.classList.add('hidden');return;}
+  sec.classList.remove('hidden');
+  document.getElementById('alertCount').textContent=stale.length;
+  document.getElementById('alertsList').innerHTML=stale.map(l=>`
+    <div class="alert-row">
+      <div><span class="alert-name">${l.nome}</span> <span style="font-size:12px;color:var(--text2)">— ${l.resp.split(' ')[0]}</span></div>
+      <span class="alert-days">${daysSinceTs(l.updatedAt)}d sem atualização</span>
+    </div>`).join('');
+}
+
 function renderGMetrics(){
   const t=leads.length,g=leads.filter(l=>l.status==='Ganho').length;
   const conv=t?Math.round(g/t*100):0;
   const at=leads.filter(l=>!['Ganho','Perdido'].includes(l.status)).length;
-  const avg=t?Math.round(leads.reduce((a,l)=>a+daysSince(l.data),0)/t):0;
+  const stale=leads.filter(l=>!['Ganho','Perdido'].includes(l.status)&&daysSinceTs(l.updatedAt)>=STALE_DAYS).length;
   document.getElementById('gMetrics').innerHTML=`
     <div class="metric"><div class="metric-label">Total</div><div class="metric-value">${t}</div></div>
     <div class="metric"><div class="metric-label">Ganhos</div><div class="metric-value" style="color:var(--success-fg)">${g}</div></div>
     <div class="metric"><div class="metric-label">Conversão</div><div class="metric-value">${conv}%</div></div>
     <div class="metric"><div class="metric-label">Em aberto</div><div class="metric-value" style="color:var(--purple-fg)">${at}</div></div>
-    <div class="metric"><div class="metric-label">Tempo médio</div><div class="metric-value">${avg}<span style="font-size:14px;font-weight:400">d</span></div></div>`;
+    <div class="metric"><div class="metric-label">Parados +${STALE_DAYS}d</div><div class="metric-value" style="color:var(--danger-fg)">${stale}</div></div>`;
 }
 
 function renderFunnel(){
@@ -406,7 +506,7 @@ function renderRanking(){
   const sorted=team.slice().sort((a,b)=>counts[b.name]-counts[a.name]);
   const max=Math.max(...Object.values(counts),1);
   document.getElementById('rankingChart').innerHTML=sorted.map((v,i)=>{
-    const [bg,fg]=teamColor(v.name);
+    const[bg,fg]=teamColor(v.name);
     return `<div class="rank-row"><div class="rank-n">${i+1}</div><div class="avatar" style="width:26px;height:26px;font-size:9px;background:${bg};color:${fg};flex-shrink:0">${initials(v.name)}</div><div class="rank-name">${v.name.split(' ')[0]}</div><div class="rank-track"><div class="rank-fill" style="width:${Math.round(counts[v.name]/max*100)}%"></div></div><div class="rank-val">${counts[v.name]}</div></div>`;
   }).join('');
 }
@@ -421,29 +521,52 @@ function renderTempo(){
   }).join('');
 }
 
-function renderDayChart(){
-  const days=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-  const vals=days.map((_,i)=>leads.filter(l=>{try{const[dd,mm,yy]=l.data.split('/');return new Date(yy,mm-1,dd).getDay()===(i+1)%7;}catch{return false;}}).length);
-  const max=Math.max(...vals,1);
-  document.getElementById('dayChart').innerHTML=`<div class="day-wrap">${days.map((d,i)=>`<div class="day-col"><div class="day-bar${vals[i]>0?' on':''}" style="height:${Math.round(vals[i]/max*52)+4}px"></div><div class="day-lbl">${d}</div></div>`).join('')}</div><div style="font-size:12px;color:var(--text2)">${leads.length} leads no total</div>`;
+// Atividade = leads atualizados nos últimos 7 dias por vendedor
+function renderActivity(){
+  const now=new Date();
+  const rows=team.map(v=>{
+    const updated=leads.filter(l=>l.resp===v.name&&daysSinceTs(l.updatedAt)<=7).length;
+    const total=leads.filter(l=>l.resp===v.name&&!['Ganho','Perdido'].includes(l.status)).length;
+    const pct=total?Math.round(updated/total*100):0;
+    const cls=pct>=70?'b-ganho':pct>=30?'b-contato':'b-perdido';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span>${v.name.split(' ')[0]}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;color:var(--text2)">${updated}/${total} leads</span>
+        <span class="badge ${cls}">${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('activityChart').innerHTML=`
+    <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Leads atualizados nos últimos 7 dias (excl. ganhos/perdidos)</div>
+    ${rows}`;
 }
 
-function setGFilter(s,btn){gStatusFilter=s;document.querySelectorAll('#gFilterRow .fpill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderGLeads();}
+function setGFilter(s,btn){
+  gStatusFilter=s;
+  document.querySelectorAll('#gFilterRow .fpill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderGLeads();
+}
 
 function renderGLeads(){
   const vf=document.getElementById('gVendedorFilter').value;
   let data=leads;
   if(vf)data=data.filter(l=>l.resp===vf);
-  if(gStatusFilter)data=data.filter(l=>l.status===gStatusFilter);
+  if(gStatusFilter==='parado')data=data.filter(l=>!['Ganho','Perdido'].includes(l.status)&&daysSinceTs(l.updatedAt)>=STALE_DAYS);
+  else if(gStatusFilter)data=data.filter(l=>l.status===gStatusFilter);
   document.getElementById('gLeadsBody').innerHTML=data.map(l=>{
-    const ri=leads.indexOf(l);const[bg,fg]=teamColor(l.resp);
-    return `<tr>
-      <td style="font-weight:500">${l.nome}</td>
+    const ri=leads.indexOf(l);
+    const[bg,fg]=teamColor(l.resp);
+    const stale=!['Ganho','Perdido'].includes(l.status)&&daysSinceTs(l.updatedAt)>=STALE_DAYS;
+    const updLabel=l.updatedAt?l.updatedAt.split(', ')[0]:'—';
+    return `<tr${stale?' style="background:#fff8f8"':''}>
+      <td style="font-weight:500">${l.nome}${stale?'<span class="stale-badge">parado</span>':''}</td>
       <td><a class="tel" href="https://wa.me/${l.phone}" target="_blank">${fmtPhone(l.phone)}</a></td>
       <td style="font-size:12px;color:var(--text2);word-break:break-all">${l.email||'—'}</td>
       <td><div style="display:flex;align-items:center;gap:5px"><div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0;background:${bg};color:${fg}">${initials(l.resp)}</div><span style="font-size:12px">${l.resp.split(' ')[0]}</span></div></td>
       <td><span class="badge ${sClass(l.status)}"><select class="status-select" onchange="changeStatus(${ri},this.value)" style="color:inherit">${['Novo','Em contato','Negociando','Ganho','Perdido'].map(s=>`<option${s===l.status?' selected':''}>${s}</option>`).join('')}</select></span></td>
       <td style="font-size:12px;color:var(--text2)">${daysSince(l.data)}d</td>
+      <td style="font-size:11px;color:var(--text3)">${updLabel}</td>
       <td><input class="obs-input" value="${(l.obs||'').replace(/"/g,'&quot;')}" placeholder="Nota..." onchange="changeObs(${ri},this.value)"/></td>
     </tr>`;
   }).join('');
@@ -455,7 +578,14 @@ function renderTeam(){
     const[bg,fg]=teamColor(v.name);
     const count=leads.filter(l=>l.resp===v.name).length;
     const g=leads.filter(l=>l.resp===v.name&&l.status==='Ganho').length;
-    return `<div class="team-card${i===ni?' next-up':''}"><div class="avatar" style="background:${bg};color:${fg};margin-bottom:10px">${initials(v.name)}</div><div style="font-size:14px;font-weight:600;margin-bottom:2px">${v.name}</div><div style="font-size:12px;color:var(--text2)">${count} leads · ${g} ganhos</div>${i===ni?'<span class="next-label">próximo</span>':''}</div>`;
+    const stale=leads.filter(l=>l.resp===v.name&&!['Ganho','Perdido'].includes(l.status)&&daysSinceTs(l.updatedAt)>=STALE_DAYS).length;
+    return `<div class="team-card${i===ni?' next-up':''}">
+      <div class="avatar" style="background:${bg};color:${fg};margin-bottom:10px">${initials(v.name)}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:2px">${v.name}</div>
+      <div style="font-size:12px;color:var(--text2)">${count} leads · ${g} ganhos</div>
+      ${stale>0?`<div style="font-size:11px;color:var(--danger-fg);margin-top:4px">${stale} parado${stale>1?'s':''}</div>`:''}
+      ${i===ni?'<span class="next-label">próximo</span>':''}
+    </div>`;
   }).join('');
 }
 
@@ -469,6 +599,7 @@ function renderLinks(){
 
 function copyLink(url,btn){navigator.clipboard.writeText(url).then(()=>{btn.textContent='✓ Copiado';setTimeout(()=>btn.textContent='Copiar',2000);});}
 
+// ── VENDEDOR ──────────────────────────────────────────────────────
 function renderVendedor(){
   const mine=leads.filter(l=>l.resp===currentVendedor);
   document.getElementById('vTitle').textContent=currentVendedor.split(' ')[0];
@@ -507,17 +638,24 @@ function renderVLeads(){
   }).join('');
 }
 
-function changeStatus(idx,val){leads[idx].status=val;save();renderGLeads();renderGMetrics();renderFunnel();renderRanking();}
-function changeStatusV(idx,val){leads[idx].status=val;save();renderVendedor();}
-function changeObs(idx,val){leads[idx].obs=val;save();}
+// ── ACTIONS ───────────────────────────────────────────────────────
+function changeStatus(idx,val){
+  leads[idx].status=val;leads[idx].updatedAt=nowTs();
+  scheduleSave();renderGLeads();renderGMetrics();renderFunnel();renderRanking();renderAlerts();renderTeam();renderActivity();
+}
+function changeStatusV(idx,val){
+  leads[idx].status=val;leads[idx].updatedAt=nowTs();
+  scheduleSave();renderVendedor();toast('Status atualizado.');
+}
+function changeObs(idx,val){leads[idx].obs=val;leads[idx].updatedAt=nowTs();scheduleSave();}
 
-// IMPORT — só adiciona novos, ignora duplicatas por telefone
+// ── IMPORT CSV ────────────────────────────────────────────────────
 function importCSV(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=e=>{
+  reader.onload=async e=>{
     const lines=e.target.result.split('\n').filter(l=>l.trim());
-    if(lines.length<2){toast('CSV vazio ou inválido.');return;}
+    if(lines.length<2){toast('CSV vazio.');return;}
     const sep=lines[0].includes(';')?';':',';
     const header=lines[0].toLowerCase().split(sep).map(h=>h.trim().replace(/['"]/g,'').replace(/^\uFEFF/,''));
     const iNome=header.findIndex(h=>h==='fn'||h.includes('nome')||h.includes('name'));
@@ -534,26 +672,29 @@ function importCSV(input){
       const key=phoneKey(phone);
       if(key&&existingPhones.has(key)){dupes++;return;}
       if(key)existingPhones.add(key);
-      leads.push({nome,email:iEmail>=0?cols[iEmail]:'',phone,canal:iCanal>=0?cols[iCanal]:'CSV',data:today(),resp:nextResp(),status:'Novo',obs:''});
+      leads.push({nome,email:iEmail>=0?cols[iEmail]:'',phone,canal:iCanal>=0?cols[iCanal]:'CSV',data:today(),resp:nextResp(),status:'Novo',obs:'',updatedAt:nowTs()});
       added++;
     });
-    save();renderGestor();
+    await saveToSheets();
+    renderGestor();
     toast(`${added} lead${added!==1?'s':''} adicionado${added!==1?'s':''}${dupes?` · ${dupes} duplicata${dupes!==1?'s':''} ignorada${dupes!==1?'s':''}`:''}`);
   };
   reader.readAsText(file,'UTF-8');
   input.value='';
 }
 
+// ── EXPORT ────────────────────────────────────────────────────────
 function exportCSV(){
-  if(!leads.length){toast('Nenhum lead para exportar.');return;}
-  const rows=[['Nome','Telefone','Email','Canal','Data','Responsável','Status','Observação']];
-  leads.forEach(l=>rows.push([l.nome,l.phone,l.email||'',l.canal,l.data,l.resp,l.status,l.obs||'']));
+  if(!leads.length){toast('Nenhum lead.');return;}
+  const rows=[['Nome','Telefone','Email','Canal','Data','Responsável','Status','Observação','Última atualização']];
+  leads.forEach(l=>rows.push([l.nome,l.phone,l.email||'',l.canal,l.data,l.resp,l.status,l.obs||'',l.updatedAt||'']));
   const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
   a.download='leads_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 }
 
+// ── MODALS ────────────────────────────────────────────────────────
 function openLeadModal(idx=null){
   editingIdx=idx;buildGSelects();
   document.getElementById('modalTitle').textContent=idx!==null?'Editar lead':'Novo lead';
@@ -562,13 +703,13 @@ function openLeadModal(idx=null){
   document.getElementById('leadModal').classList.add('open');
 }
 function closeLeadModal(){document.getElementById('leadModal').classList.remove('open');editingIdx=null;}
-function saveLead(){
+async function saveLead(){
   const nome=document.getElementById('mNome').value.trim();
   if(!nome){toast('Informe o nome.');return;}
-  const obj={nome,phone:document.getElementById('mTelefone').value.trim().replace(/\D/g,''),email:document.getElementById('mEmail').value.trim(),canal:document.getElementById('mCanal').value,resp:document.getElementById('mResp').value,data:today(),status:'Novo',obs:''};
+  const obj={nome,phone:document.getElementById('mTelefone').value.trim().replace(/\D/g,''),email:document.getElementById('mEmail').value.trim(),canal:document.getElementById('mCanal').value,resp:document.getElementById('mResp').value,data:today(),status:'Novo',obs:'',updatedAt:nowTs()};
   if(editingIdx!==null){leads[editingIdx]={...leads[editingIdx],...obj};}
   else{obj.resp=nextResp();leads.push(obj);}
-  save();renderGestor();closeLeadModal();toast('Lead salvo.');
+  await saveToSheets();renderGestor();closeLeadModal();toast('Lead salvo.');
 }
 
 function openTeamModal(){
@@ -582,13 +723,18 @@ function saveVendedor(){
   const nome=document.getElementById('tNome').value.trim();
   const slug=slugify(document.getElementById('tSlug').value||nome.split(' ')[0]);
   if(!nome){toast('Informe o nome.');return;}
-  if(team.find(t=>t.slug===slug)){toast('Slug já existe, escolha outro.');return;}
-  team.push({name:nome,slug});save();buildGSelects();renderTeam();renderLinks();closeTeamModal();
+  if(team.find(t=>t.slug===slug)){toast('Slug já existe.');return;}
+  team.push({name:nome,slug});buildGSelects();renderTeam();renderLinks();closeTeamModal();
   toast(nome+' adicionado — link: ?v='+slug);
 }
 
 document.getElementById('leadModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLeadModal();});
 document.getElementById('teamModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeTeamModal();});
+
+// auto-refresh a cada 60s para o vendedor
+setInterval(()=>{
+  if(currentRole==='vendedor'){loadFromSheets().then(()=>renderVendedor());}
+},60000);
 
 route();
 </script>
