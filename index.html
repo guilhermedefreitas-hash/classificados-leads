@@ -318,9 +318,10 @@ a.tel:hover{text-decoration:underline;}
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────
-const GESTOR_PIN = '1234';
-const SHEET_URL  = 'https://script.google.com/macros/s/AKfycbywwjEg93DW9-FhzR8jTEdt5Hh3axMl3PP3UukD2M9RGn72xwLNi4eurATb7wmpRuqH/exec';
-const STALE_DAYS = 3; // leads parados há mais de X dias
+const GESTOR_PIN  = '1234';
+const SUPABASE_URL = 'https://cjlrfdacayvmxlbitzkh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqbHJmZGFjYXl2bXhsYml0emtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczOTc4NzcsImV4cCI6MjA5Mjk3Mzg3N30.E-VFmCEjD25GlsOGC9D11xP-OATQF0vW_PC-q4TeWVc';
+const STALE_DAYS  = 3; // leads parados há mais de X dias
 
 const COLORS=[['#EEF4FF','#1D4ED8'],['#ECFDF5','#065F46'],['#FFFBEB','#92400E'],['#F5F3FF','#5B21B6'],['#FFF1F2','#9F1239'],['#F0F9FF','#075985'],['#FDF2F8','#9D174D']];
 
@@ -359,51 +360,116 @@ function toast(msg,dur=3000){const t=document.getElementById('toast');t.textCont
 function setSyncDot(state){const d=document.getElementById('syncDot');d.className='sync-dot'+(state?' '+state:'');}
 
 // ── SHEETS API ────────────────────────────────────────────────────
+function tryParse(s){try{return JSON.parse(s);}catch{return[];}}
+
+function supaHeaders(){
+  return {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+}
+
 async function loadFromSheets(){
   setSyncDot('loading');
   try{
-    const res=await fetch(SHEET_URL+'?t='+Date.now(),{method:'GET'});
-    const text=await res.text();
-    const data=JSON.parse(text);
+    const res=await fetch(SUPABASE_URL+'/rest/v1/leads?select=*&order=created_at.asc',{headers:supaHeaders()});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
     if(Array.isArray(data)&&data.length>0){
       leads=data.map(r=>({
+        _id:r.id,
         nome:r.nome||'',email:r.email||'',phone:r.phone||'',
         canal:r.canal||'',data:r.data||today(),resp:r.resp||'',
-        status:r.status||'Novo',obs:r.obs||'',updatedAt:r.updatedAt||'',
-        history:r.history?tryParse(r.history):[]
+        status:r.status||'Novo',obs:r.obs||'',updatedAt:r.updated_at||'',
+        history:Array.isArray(r.history)?r.history:tryParse(r.history)
       }));
       rrIndex=leads.length%team.length;
+      setSyncDot('ok');
+      return {ok:true,empty:false};
     }
     setSyncDot('ok');
-    return true;
+    return {ok:true,empty:true};
   }catch(e){
     setSyncDot('err');
-    toast('Erro ao carregar dados do Sheets.');
-    return false;
+    console.error('loadFromSheets error:',e);
+    return {ok:false,empty:false};
   }
 }
 
-function tryParse(s){try{return JSON.parse(s);}catch{return[];}}
-
 async function saveToSheets(){
+  // no-op: individual saves handle persistence
+}
+
+async function upsertLead(lead){
   setSyncDot('loading');
   try{
-    await fetch(SHEET_URL,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'save',leads}),
-    });
+    const payload={
+      nome:lead.nome, email:lead.email, phone:lead.phone,
+      canal:lead.canal, data:lead.data, resp:lead.resp,
+      status:lead.status, obs:lead.obs||'',
+      updated_at:new Date().toISOString(),
+      history:lead.history||[]
+    };
+    let res;
+    if(lead._id){
+      res=await fetch(SUPABASE_URL+'/rest/v1/leads?id=eq.'+lead._id,{
+        method:'PATCH',
+        headers:{...supaHeaders(),'Prefer':'return=representation'},
+        body:JSON.stringify(payload)
+      });
+    } else {
+      res=await fetch(SUPABASE_URL+'/rest/v1/leads',{
+        method:'POST',
+        headers:{...supaHeaders(),'Prefer':'return=representation'},
+        body:JSON.stringify(payload)
+      });
+    }
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows=await res.json();
+    if(rows&&rows[0]) lead._id=rows[0].id;
     setSyncDot('ok');
   }catch(e){
     setSyncDot('err');
-    toast('Erro ao salvar no Sheets.');
+    console.error('upsertLead error:',e);
+    toast('Erro ao salvar. Verifique a conexão.');
   }
 }
 
-function scheduleSave(){
+async function deleteLead(lead){
+  if(!lead._id) return;
+  try{
+    await fetch(SUPABASE_URL+'/rest/v1/leads?id=eq.'+lead._id,{
+      method:'DELETE', headers:supaHeaders()
+    });
+  }catch(e){console.error('deleteLead error:',e);}
+}
+
+async function bulkInsertLeads(newLeads){
+  setSyncDot('loading');
+  try{
+    const payload=newLeads.map(l=>({
+      nome:l.nome, email:l.email, phone:l.phone,
+      canal:l.canal, data:l.data, resp:l.resp,
+      status:l.status, obs:l.obs||'',
+      updated_at:new Date().toISOString(),
+      history:l.history||[]
+    }));
+    const res=await fetch(SUPABASE_URL+'/rest/v1/leads',{
+      method:'POST',
+      headers:{...supaHeaders(),'Prefer':'return=representation'},
+      body:JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows=await res.json();
+    rows.forEach((r,i)=>{ if(newLeads[i]) newLeads[i]._id=r.id; });
+    setSyncDot('ok');
+  }catch(e){
+    setSyncDot('err');
+    console.error('bulkInsert error:',e);
+    toast('Erro ao salvar leads no banco.');
+  }
+}
+
+function scheduleSave(lead){
   clearTimeout(saveTimeout);
-  saveTimeout=setTimeout(()=>saveToSheets(),1200);
+  saveTimeout=setTimeout(()=>{ if(lead) upsertLead(lead); },800);
 }
 
 // ── SEED DATA (first load only) ───────────────────────────────────
@@ -443,7 +509,7 @@ async function route(){
   const params=new URLSearchParams(window.location.search);
   const vSlug=params.get('v');
 
-  const loaded=await loadFromSheets();
+  const result=await loadFromSheets();
 
   if(vSlug){
     const member=team.find(t=>t.slug===vSlug.toLowerCase());
@@ -452,10 +518,11 @@ async function route(){
     setTopbar(member.name,'Vendedor',teamColor(member.name));
     showScreen('viewVendedor');renderVendedor();
   } else {
-    // gestor — seed if empty
-    if(loaded&&leads.length===0){
-      toast('Primeira vez — carregando leads iniciais...');
-      await seedLeads();
+    // gestor — seed only if sheets confirmed empty
+    if(result.ok&&result.empty){
+      toast('Primeira vez — importe seu CSV para começar.');
+    } else if(!result.ok){
+      toast('Não foi possível conectar ao Sheets. Verifique a conexão.');
     }
     showScreen('pinScreen');
     setTimeout(()=>document.getElementById('pinInput').focus(),100);
@@ -684,14 +751,14 @@ function addHistory(idx,val){
 function changeStatus(idx,val){
   addHistory(idx,val);
   leads[idx].status=val;leads[idx].updatedAt=nowTs();
-  scheduleSave();renderGLeads();renderGMetrics();renderFunnel();renderRanking();renderAlerts();renderTeam();renderActivity();
+  scheduleSave(leads[idx]);renderGLeads();renderGMetrics();renderFunnel();renderRanking();renderAlerts();renderTeam();renderActivity();
 }
 function changeStatusV(idx,val){
   addHistory(idx,val);
   leads[idx].status=val;leads[idx].updatedAt=nowTs();
-  scheduleSave();renderVendedor();toast('Status atualizado.');
+  scheduleSave(leads[idx]);renderVendedor();toast('Status atualizado.');
 }
-function changeObs(idx,val){leads[idx].obs=val;leads[idx].updatedAt=nowTs();scheduleSave();}
+function changeObs(idx,val){leads[idx].obs=val;leads[idx].updatedAt=nowTs();scheduleSave(leads[idx]);}
 
 // HISTORICO DRAWER
 const dotClass={Novo:'novo','Em contato':'contato',Negociando:'negoc',Ganho:'ganho',Perdido:'perdido'};
@@ -726,6 +793,7 @@ function importCSV(input){
     const iCanal=header.findIndex(h=>h.includes('canal')||h.includes('origem'));
     const existingPhones=new Set(leads.map(l=>phoneKey(l.phone)));
     let added=0,dupes=0;
+    const newLeads=[];
     lines.slice(1).forEach(line=>{
       const cols=line.split(sep).map(c=>c.trim().replace(/^"|"$/g,''));
       const nome=cap(iNome>=0?cols[iNome]:cols[0]);
@@ -734,10 +802,11 @@ function importCSV(input){
       const key=phoneKey(phone);
       if(key&&existingPhones.has(key)){dupes++;return;}
       if(key)existingPhones.add(key);
-      leads.push({nome,email:iEmail>=0?cols[iEmail]:'',phone,canal:iCanal>=0?cols[iCanal]:'CSV',data:today(),resp:nextResp(),status:'Novo',obs:'',updatedAt:nowTs()});
+      newLeads.push({nome,email:iEmail>=0?cols[iEmail]:'',phone,canal:iCanal>=0?cols[iCanal]:'CSV',data:today(),resp:nextResp(),status:'Novo',obs:'',history:[],updatedAt:nowTs()});
       added++;
     });
-    await saveToSheets();
+    await bulkInsertLeads(newLeads);
+    leads.push(...newLeads);
     renderGestor();
     toast(`${added} lead${added!==1?'s':''} adicionado${added!==1?'s':''}${dupes?` · ${dupes} duplicata${dupes!==1?'s':''} ignorada${dupes!==1?'s':''}`:''}`);
   };
@@ -769,9 +838,14 @@ async function saveLead(){
   const nome=document.getElementById('mNome').value.trim();
   if(!nome){toast('Informe o nome.');return;}
   const obj={nome,phone:document.getElementById('mTelefone').value.trim().replace(/\D/g,''),email:document.getElementById('mEmail').value.trim(),canal:document.getElementById('mCanal').value,resp:document.getElementById('mResp').value,data:today(),status:'Novo',obs:'',updatedAt:nowTs()};
-  if(editingIdx!==null){leads[editingIdx]={...leads[editingIdx],...obj};}
-  else{obj.resp=nextResp();leads.push(obj);}
-  await saveToSheets();renderGestor();closeLeadModal();toast('Lead salvo.');
+  if(editingIdx!==null){
+    leads[editingIdx]={...leads[editingIdx],...obj};
+    await upsertLead(leads[editingIdx]);
+  } else {
+    obj.resp=nextResp();leads.push(obj);
+    await upsertLead(obj);
+  }
+  renderGestor();closeLeadModal();toast('Lead salvo.');
 }
 
 function openTeamModal(){
