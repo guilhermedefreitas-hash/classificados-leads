@@ -7,7 +7,19 @@ function doPost(e) {
       sheet.clearContents();
       sheet.appendRow(['nome','email','phone','canal','data','resp','status','obs','updatedAt','history']);
       data.leads.forEach(function(l) {
-        sheet.appendRow([l.nome||'',l.email||'',l.phone||'',l.canal||'',l.data||'',l.resp||'',l.status||'',l.obs||'',l.updatedAt||'',JSON.stringify(l.history||[])]);
+        var row = [
+          l.nome||'',
+          l['email']||'',
+          l['phone']||'',
+          l.canal||'',
+          l['data']||'',
+          l.resp||'',
+          l.status||'',
+          l.obs||'',
+          l.updatedAt||'',
+          JSON.stringify(l.history||[])
+        ];
+        sheet.appendRow(row);
       });
     }
     return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
