@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Leads — Classificados</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#F7F7F5;--surface:#fff;--border:#E5E5E2;--border2:#D0D0CC;
+  --text:#111;--text2:#666;--text3:#999;
+  --success-bg:#EDFAF3;--success-fg:#1A7A4A;
+  --danger-bg:#FEF0F0;--danger-fg:#C0392B;
+  --info-bg:#EEF4FF;--info-fg:#1D4ED8;
+  --warn-bg:#FFFBEB;--warn-fg:#92400E;
+  --purple-bg:#F3F0FF;--purple-fg:#5B21B6;
+  --radius:10px;--radius-lg:14px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+.logo{font-size:15px;font-weight:600;letter-spacing:-.3px;}
+.logo span{color:var(--text2);font-weight:400;}
+.user-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+.role-tag{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:var(--bg);border:1px solid var(--border2);}
+.page{padding:1.5rem;max-width:1000px;margin:0 auto;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px;}
+.page-title{font-size:18px;font-weight:600;letter-spacing:-.3px;}
+.page-sub{font-size:13px;color:var(--text2);margin-top:3px;}
+button{font-family:'Inter',sans-serif;cursor:pointer;}
+.btn{padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--text);color:#fff;}
+.btn-primary:hover{opacity:.85;}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border2);}
+.btn-secondary:hover{background:var(--bg);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:1.25rem;}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+.metric-label{font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.metric-value{font-size:26px;font-weight:600;letter-spacing:-.5px;line-height:1;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:12px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+@media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;table-layout:fixed;}
+th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);}
+td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--bg);}
+.badge{display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;white-space:nowrap;}
+.b-novo{background:var(--info-bg);color:var(--info-fg);}
+.b-contato{background:var(--warn-bg);color:var(--warn-fg);}
+.b-negoc{background:var(--purple-bg);color:var(--purple-fg);}
+.b-ganho{background:var(--success-bg);color:var(--success-fg);}
+.b-perdido{background:var(--danger-bg);color:var(--danger-fg);}
+.status-select{border:none;background:transparent;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;padding:0;outline:none;width:100%;color:inherit;}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;}
+.fpill{padding:5px 14px;border-radius:100px;border:1px solid var(--border2);background:transparent;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.fpill:hover{border-color:var(--text);color:var(--text);}
+.fpill.active{background:var(--text);color:#fff;border-color:var(--text);}
+.fbar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.fbar-lbl{width:80px;font-size:12px;color:var(--text2);text-align:right;flex-shrink:0;}
+.fbar-track{flex:1;background:var(--bg);border-radius:4px;height:20px;overflow:hidden;}
+.fbar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:700;}
+.fbar-count{width:24px;font-size:12px;font-weight:600;text-align:right;flex-shrink:0;}
+.rank-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.rank-row:last-child{border-bottom:none;}
+.rank-n{width:16px;font-size:12px;color:var(--text3);flex-shrink:0;}
+.rank-name{flex:1;font-size:13px;font-weight:500;}
+.rank-track{width:90px;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.rank-fill{height:100%;background:var(--text);border-radius:3px;}
+.rank-val{width:28px;font-size:13px;font-weight:600;text-align:right;}
+.day-wrap{display:flex;align-items:flex-end;gap:6px;height:60px;margin-bottom:8px;}
+.day-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.day-bar{width:100%;border-radius:3px 3px 0 0;background:var(--border);min-height:4px;}
+.day-bar.on{background:var(--text);}
+.day-lbl{font-size:10px;color:var(--text3);}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;}
+.team-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;}
+.team-card.next-up{border-color:var(--text);border-width:1.5px;}
+.next-label{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;background:var(--text);color:#fff;padding:2px 8px;border-radius:100px;}
+.link-chip{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 12px;margin-top:6px;}
+.link-chip code{flex:1;font-size:12px;color:var(--text2);word-break:break-all;}
+.copy-btn{font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;}
+.copy-btn:hover{background:var(--bg);}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center;padding:1rem;}
+.modal-backdrop.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:100%;max-width:440px;border:1px solid var(--border);}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:16px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;}
+.form-input{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border .15s;}
+.form-input:focus{border-color:var(--text);}
+select.form-input{appearance:auto;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:var(--radius);font-size:13px;font-weight:500;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+.obs-input{border:none;background:transparent;font-family:'Inter',sans-serif;font-size:12px;color:var(--text2);width:100%;outline:none;}
+.obs-input::placeholder{color:var(--text3);}
+a.tel{color:var(--info-fg);text-decoration:none;font-size:12px;}
+a.tel:hover{text-decoration:underline;}
+.hidden{display:none!important;}
+.pin-screen{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 56px);}
+.pin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;width:100%;max-width:340px;text-align:center;}
+.pin-card h2{font-size:18px;font-weight:600;margin-bottom:6px;}
+.pin-card p{font-size:13px;color:var(--text2);margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">leads<span>.app</span></div>
+  <div class="user-row">
+    <div class="avatar" id="topAvatar" style="background:#EEF4FF;color:#1D4ED8">?</div>
+    <span id="topName" style="font-size:13px;color:var(--text2)"></span>
+    <span class="role-tag" id="roleTag"></span>
+  </div>
+</div>
+
+<!-- PIN -->
+<div id="pinScreen" class="hidden">
+  <div class="pin-screen">
+    <div class="pin-card">
+      <h2>Painel do gestor</h2>
+      <p>Digite a senha para continuar</p>
+      <input class="form-input" type="password" id="pinInput" placeholder="Senha" onkeydown="if(event.key==='Enter')checkPin()"/>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px;" onclick="checkPin()">Entrar</button>
+      <div id="pinError" style="color:var(--danger-fg);font-size:12px;margin-top:10px;display:none;">Senha incorreta.</div>
+    </div>
+  </div>
+</div>
+
+<!-- GESTOR -->
+<div class="page hidden" id="viewGestor">
+  <div class="page-header">
+    <div><div class="page-title">Painel do gestor</div><div class="page-sub" id="gSubtitle"></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-secondary btn-sm" onclick="exportCSV()">↓ Exportar</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('csvFile').click()">↑ Importar CSV</button>
+      <button class="btn btn-primary btn-sm" onclick="openLeadModal()">+ Novo lead</button>
+      <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="importCSV(this)"/>
+    </div>
+  </div>
+  <div class="metrics" id="gMetrics"></div>
+  <div class="grid2">
+    <div class="card"><div class="card-header"><div class="card-title">Funil</div></div><div id="funnelChart"></div></div>
+    <div class="card"><div class="card-header"><div class="card-title">Ranking — ganhos</div></div><div id="rankingChart"></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="card-header"><div class="card-title">Tempo médio por vendedor</div></div><div id="tempoChart"></div></div>
+    <div class="card"><div class="card-header"><div class="card-title">Leads por dia da semana</div></div><div id="dayChart"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Todos os leads</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select class="form-input btn-sm" id="gVendedorFilter" onchange="renderGLeads()" style="width:auto;"></select>
+        <div class="filter-row" id="gFilterRow">
+          <button class="fpill active" onclick="setGFilter('',this)">Todos</button>
+          <button class="fpill" onclick="setGFilter('Novo',this)">Novos</button>
+          <button class="fpill" onclick="setGFilter('Em contato',this)">Contato</button>
+          <button class="fpill" onclick="setGFilter('Negociando',this)">Negoc.</button>
+          <button class="fpill" onclick="setGFilter('Ganho',this)">Ganhos</button>
+          <button class="fpill" onclick="setGFilter('Perdido',this)">Perdidos</button>
+        </div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th style="width:19%">Nome</th><th style="width:15%">Telefone</th><th style="width:18%">Email</th>
+        <th style="width:13%">Responsável</th><th style="width:12%">Status</th><th style="width:7%">Dias</th><th style="width:16%">Obs.</th>
+      </tr></thead><tbody id="gLeadsBody"></tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Time &amp; links de acesso</div><button class="btn btn-secondary btn-sm" onclick="openTeamModal()">+ Vendedor</button></div>
+    <div class="team-grid" id="teamGrid"></div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">Links individuais</div>
+      <div id="linksList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- VENDEDOR -->
+<div class="page hidden" id="viewVendedor">
+  <div class="page-header">
+    <div><div class="page-title" id="vTitle">Meus leads</div><div class="page-sub" id="vSubtitle"></div></div>
+  </div>
+  <div class="metrics" id="vMetrics"></div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Negociações</div>
+      <div class="filter-row" id="vFilterRow">
+        <button class="fpill active" onclick="setVFilter('',this)">Todos</button>
+        <button class="fpill" onclick="setVFilter('Novo',this)">Novos</button>
+        <button class="fpill" onclick="setVFilter('Em contato',this)">Em contato</button>
+        <button class="fpill" onclick="setVFilter('Negociando',this)">Negociando</button>
+        <button class="fpill" onclick="setVFilter('Ganho',this)">Ganhos</button>
+        <button class="fpill" onclick="setVFilter('Perdido',this)">Perdidos</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th style="width:25%">Nome</th><th style="width:18%">Telefone</th>
+        <th style="width:14%">Status</th><th style="width:8%">Dias</th><th style="width:35%">Observação</th>
+      </tr></thead><tbody id="vLeadsBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- DENIED -->
+<div class="page hidden" id="viewDenied">
+  <div style="text-align:center;padding:80px 20px;">
+    <div style="font-size:32px;margin-bottom:12px;">🔒</div>
+    <div style="font-size:18px;font-weight:600;margin-bottom:8px;">Link não encontrado</div>
+    <div style="font-size:13px;color:var(--text2);">Verifique o link com o seu gestor.</div>
+  </div>
+</div>
+
+<!-- MODAL LEAD -->
+<div class="modal-backdrop" id="leadModal">
+  <div class="modal">
+    <h3 id="modalTitle">Novo lead</h3>
+    <div class="form-group"><label class="form-label">Nome</label><input class="form-input" id="mNome" placeholder="Nome completo"/></div>
+    <div class="form-group"><label class="form-label">Telefone</label><input class="form-input" id="mTelefone" placeholder="55 11 99999-0000"/></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="mEmail" placeholder="email@exemplo.com"/></div>
+    <div class="form-group"><label class="form-label">Canal</label><select class="form-input" id="mCanal"><option>WhatsApp</option><option>Instagram</option><option>Site</option><option>Indicação</option><option>Outro</option></select></div>
+    <div class="form-group"><label class="form-label">Responsável</label><select class="form-input" id="mResp"></select></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeLeadModal()">Cancelar</button><button class="btn btn-primary" onclick="saveLead()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL VENDEDOR -->
+<div class="modal-backdrop" id="teamModal">
+  <div class="modal">
+    <h3>Novo vendedor</h3>
+    <div class="form-group"><label class="form-label">Nome</label><input class="form-input" id="tNome" placeholder="Nome completo"/></div>
+    <div class="form-group"><label class="form-label">Slug (link de acesso)</label><input class="form-input" id="tSlug" placeholder="ex: maria"/><div style="font-size:11px;color:var(--text2);margin-top:4px;">O link será: app.com?v=<strong id="slugPreview">…</strong></div></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeTeamModal()">Cancelar</button><button class="btn btn-primary" onclick="saveVendedor()">Adicionar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GESTOR_PIN='1234';
+const COLORS=[['#EEF4FF','#1D4ED8'],['#ECFDF5','#065F46'],['#FFFBEB','#92400E'],['#F5F3FF','#5B21B6'],['#FFF1F2','#9F1239'],['#F0F9FF','#075985']];
+
+let team=[];
+let leads=[];
+let rrIndex=0;
+let gStatusFilter='';
+let vStatusFilter='';
+let currentRole='';
+let currentVendedor='';
+let editingIdx=null;
+
+function cap(s){return s?s.trim().replace(/\b\w/g,(c,i,str)=>{const p=str[i-1];return(!p||p===' ')&&str[i-2]!=="'"?c.toUpperCase():c.toLowerCase()}):''}
+function initials(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();}
+function teamColor(name){const i=team.findIndex(t=>t.name===name);return COLORS[(i<0?0:i)%COLORS.length];}
+function sClass(s){return {Novo:'b-novo','Em contato':'b-contato',Negociando:'b-negoc',Ganho:'b-ganho',Perdido:'b-perdido'}[s]||'b-novo';}
+function fmtPhone(p){if(!p)return '—';const n=p.replace(/\D/g,'');if(n.length>=12)return '+'+n.slice(0,2)+' ('+n.slice(2,4)+') '+n.slice(4,9)+'-'+n.slice(9);return p;}
+function today(){return new Date().toLocaleDateString('pt-BR');}
+function daysSince(d){try{const[dd,mm,yy]=d.split('/');return Math.max(0,Math.round((new Date()-new Date(yy,mm-1,dd))/86400000));}catch{return 0;}}
+function nextResp(){if(!team.length)return '';const v=team[rrIndex%team.length].name;rrIndex++;save();return v;}
+function phoneKey(p){return(p||'').replace(/\D/g,'').slice(-9);}
+function slugify(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+function save(){
+  localStorage.setItem('cl_leads',JSON.stringify(leads));
+  localStorage.setItem('cl_team',JSON.stringify(team));
+  localStorage.setItem('cl_rr',String(rrIndex));
+}
+
+function load(){
+  const lt=localStorage.getItem('cl_team');
+  const ll=localStorage.getItem('cl_leads');
+  const lr=localStorage.getItem('cl_rr');
+  if(lt)team=JSON.parse(lt);
+  if(ll)leads=JSON.parse(ll);
+  if(lr)rrIndex=parseInt(lr)||0;
+  if(!team.length){
+    team=[
+      {name:'Caio Millioti',slug:'caio'},
+      {name:'Maria Julia',slug:'mariajulia'},
+      {name:'Leonardo Lima',slug:'leonardo'},
+      {name:'Allan Santos',slug:'allan'},
+      {name:'Kelly Abreu',slug:'kelly'},
+      {name:'Gabriel Reis',slug:'gabriel'},
+      {name:'Rafael Marsiglia',slug:'rafael'},
+    ];
+  }
+  if(!leads.length){
+    const seed=[
+      {fn:'Paulo Augusto Alves',email:'paulo@casarini.com.br',phone:'5555119981356'},
+      {fn:'VICTOR LUCAS SANTOS ALVES',email:'brittolucas57@gmail.com',phone:'5511965036315'},
+      {fn:'clemerson santos Xavier',email:'clemersonxavier@gmail.com',phone:'5511934974531'},
+      {fn:'Marli Gonçalves',email:'marligon3001@gmail.com',phone:'5511991096546'},
+      {fn:'DENYS B DOS SANTOS',email:'denys_borges@hotmail.com',phone:'5511915519826'},
+      {fn:'Lourismar Silva Souza',email:'lourissilva.2018@gmail.com',phone:'5511972740349'},
+      {fn:'Marcio Toshikazu Furushima',email:'mtfurushima@hotmail.com',phone:'5511992935127'},
+      {fn:'Adelson Ribeiro da Silva',email:'ribeiroadelson67@gmail.com',phone:'5511980846335'},
+      {fn:'João Lucas',email:'jlcdemoraes@gmail.com',phone:'5511995774042'},
+      {fn:'Eli Ramos',email:'eli.ramos1090@hotmail.com',phone:'5511941119936'},
+      {fn:'Alan Santana',email:'alan-s-alves@hotmail.com',phone:'5511992491742'},
+      {fn:'Eloá Costa de Souza Nascimento',email:'eloa.cartorio@gmail.com',phone:'5511981958266'},
+      {fn:'Johnatan Santos',email:'joh_fa@hotmail.com',phone:'5511975261847'},
+      {fn:'Marcos Alan',email:'',phone:'5511973399339'},
+      {fn:'Abraao Silva',email:'abraaojs.dev@gmail.com',phone:'5511974142778'},
+      {fn:'VAGNER ALEXANDRE FELICIO',email:'vagnerfelicio@outlook.com',phone:'5511982512210'},
+      {fn:'Alexandre Borini',email:'alexandre_borini@hotmail.com',phone:'5511948945027'},
+      {fn:'ANDREA NOVAIS PEIXOTO',email:'andreanovais05@gmail.com',phone:'5511969184205'},
+      {fn:'Rogério José de melo',email:'rogeriomelojose@gmail.com',phone:'5511952517078'},
+      {fn:'Bruno',email:'bruno53137531@gmail.com',phone:'5511995884789'},
+      {fn:'Henrique Marques Pallioto',email:'henriquepallioto3@gmail.com',phone:'5517982006711'},
+      {fn:'pedro de Almeida neto',email:'pedroalmeidaneto34@gmail.com',phone:'5547991952870'},
+      {fn:'Ademar Santos',email:'joseademardoss@gmail.com',phone:'5519992782894'},
+    ];
+    seed.forEach(r=>{leads.push({nome:cap(r.fn),email:r.email,phone:r.phone,canal:'CSV',data:today(),resp:nextResp(),status:'Novo',obs:''});});
+    save();
+  }
+}
+
+function route(){
+  load();
+  const params=new URLSearchParams(window.location.search);
+  const vSlug=params.get('v');
+  const gParam=params.get('gestor');
+  if(vSlug){
+    const member=team.find(t=>t.slug===vSlug.toLowerCase());
+    if(!member){showScreen('viewDenied');return;}
+    currentRole='vendedor';currentVendedor=member.name;
+    setTopbar(member.name,'Vendedor',teamColor(member.name));
+    showScreen('viewVendedor');renderVendedor();
+  } else {
+    showScreen('pinScreen');
+    setTimeout(()=>document.getElementById('pinInput').focus(),100);
+  }
+}
+
+function showScreen(id){
+  ['pinScreen','viewGestor','viewVendedor','viewDenied'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));
+}
+
+function checkPin(){
+  const val=document.getElementById('pinInput').value;
+  if(val===GESTOR_PIN){
+    currentRole='gestor';
+    setTopbar('Gestor','Gestor',['#EEF4FF','#1D4ED8']);
+    showScreen('viewGestor');renderGestor();
+  } else {
+    document.getElementById('pinError').style.display='block';
+    document.getElementById('pinInput').value='';
+    document.getElementById('pinInput').focus();
+  }
+}
+
+function setTopbar(name,role,colors){
+  document.getElementById('topAvatar').textContent=initials(name);
+  document.getElementById('topAvatar').style.background=colors[0];
+  document.getElementById('topAvatar').style.color=colors[1];
+  document.getElementById('topName').textContent=name;
+  document.getElementById('roleTag').textContent=role;
+}
+
+function renderGestor(){
+  buildGSelects();renderGMetrics();renderFunnel();renderRanking();
+  renderTempo();renderDayChart();renderGLeads();renderTeam();renderLinks();
+  document.getElementById('gSubtitle').textContent=leads.length+' leads · '+team.length+' vendedores';
+}
+
+function buildGSelects(){
+  document.getElementById('gVendedorFilter').innerHTML='<option value="">Todos vendedores</option>'+team.map(v=>`<option>${v.name}</option>`).join('');
+  document.getElementById('mResp').innerHTML=team.map(v=>`<option>${v.name}</option>`).join('');
+}
+
+function renderGMetrics(){
+  const t=leads.length,g=leads.filter(l=>l.status==='Ganho').length;
+  const conv=t?Math.round(g/t*100):0;
+  const at=leads.filter(l=>!['Ganho','Perdido'].includes(l.status)).length;
+  const avg=t?Math.round(leads.reduce((a,l)=>a+daysSince(l.data),0)/t):0;
+  document.getElementById('gMetrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Total</div><div class="metric-value">${t}</div></div>
+    <div class="metric"><div class="metric-label">Ganhos</div><div class="metric-value" style="color:var(--success-fg)">${g}</div></div>
+    <div class="metric"><div class="metric-label">Conversão</div><div class="metric-value">${conv}%</div></div>
+    <div class="metric"><div class="metric-label">Em aberto</div><div class="metric-value" style="color:var(--purple-fg)">${at}</div></div>
+    <div class="metric"><div class="metric-label">Tempo médio</div><div class="metric-value">${avg}<span style="font-size:14px;font-weight:400">d</span></div></div>`;
+}
+
+function renderFunnel(){
+  const stages=[['Novo','#378ADD','#0C447C'],['Em contato','#EF9F27','#633806'],['Negociando','#7F77DD','#3C3489'],['Ganho','#22c55e','#14532d'],['Perdido','#ef4444','#7f1d1d']];
+  const max=leads.length||1;
+  document.getElementById('funnelChart').innerHTML=stages.map(([s,bg,fg])=>{
+    const c=leads.filter(l=>l.status===s).length,pct=Math.round(c/max*100);
+    return `<div class="fbar-row"><div class="fbar-lbl">${s}</div><div class="fbar-track"><div class="fbar-fill" style="width:${Math.max(pct,2)}%;background:${bg};color:${fg}">${pct>8?pct+'%':''}</div></div><div class="fbar-count">${c}</div></div>`;
+  }).join('');
+}
+
+function renderRanking(){
+  const counts={};team.forEach(v=>{counts[v.name]=leads.filter(l=>l.resp===v.name&&l.status==='Ganho').length;});
+  const sorted=team.slice().sort((a,b)=>counts[b.name]-counts[a.name]);
+  const max=Math.max(...Object.values(counts),1);
+  document.getElementById('rankingChart').innerHTML=sorted.map((v,i)=>{
+    const [bg,fg]=teamColor(v.name);
+    return `<div class="rank-row"><div class="rank-n">${i+1}</div><div class="avatar" style="width:26px;height:26px;font-size:9px;background:${bg};color:${fg};flex-shrink:0">${initials(v.name)}</div><div class="rank-name">${v.name.split(' ')[0]}</div><div class="rank-track"><div class="rank-fill" style="width:${Math.round(counts[v.name]/max*100)}%"></div></div><div class="rank-val">${counts[v.name]}</div></div>`;
+  }).join('');
+}
+
+function renderTempo(){
+  const avgs={};
+  team.forEach(v=>{const ls=leads.filter(l=>l.resp===v.name);avgs[v.name]=ls.length?Math.round(ls.reduce((a,l)=>a+daysSince(l.data),0)/ls.length):0;});
+  const overall=team.length?Math.round(Object.values(avgs).reduce((a,b)=>a+b,0)/team.length):0;
+  document.getElementById('tempoChart').innerHTML=team.map(v=>{
+    const d=avgs[v.name]-overall,cls=d<=0?'b-ganho':'b-perdido';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span>${v.name.split(' ')[0]}</span><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:500">${avgs[v.name]}d</span><span class="badge ${cls}">${d===0?'média':d>0?'+'+d+'d':d+'d'}</span></div></div>`;
+  }).join('');
+}
+
+function renderDayChart(){
+  const days=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const vals=days.map((_,i)=>leads.filter(l=>{try{const[dd,mm,yy]=l.data.split('/');return new Date(yy,mm-1,dd).getDay()===(i+1)%7;}catch{return false;}}).length);
+  const max=Math.max(...vals,1);
+  document.getElementById('dayChart').innerHTML=`<div class="day-wrap">${days.map((d,i)=>`<div class="day-col"><div class="day-bar${vals[i]>0?' on':''}" style="height:${Math.round(vals[i]/max*52)+4}px"></div><div class="day-lbl">${d}</div></div>`).join('')}</div><div style="font-size:12px;color:var(--text2)">${leads.length} leads no total</div>`;
+}
+
+function setGFilter(s,btn){gStatusFilter=s;document.querySelectorAll('#gFilterRow .fpill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderGLeads();}
+
+function renderGLeads(){
+  const vf=document.getElementById('gVendedorFilter').value;
+  let data=leads;
+  if(vf)data=data.filter(l=>l.resp===vf);
+  if(gStatusFilter)data=data.filter(l=>l.status===gStatusFilter);
+  document.getElementById('gLeadsBody').innerHTML=data.map(l=>{
+    const ri=leads.indexOf(l);const[bg,fg]=teamColor(l.resp);
+    return `<tr>
+      <td style="font-weight:500">${l.nome}</td>
+      <td><a class="tel" href="https://wa.me/${l.phone}" target="_blank">${fmtPhone(l.phone)}</a></td>
+      <td style="font-size:12px;color:var(--text2);word-break:break-all">${l.email||'—'}</td>
+      <td><div style="display:flex;align-items:center;gap:5px"><div class="avatar" style="width:22px;height:22px;font-size:9px;flex-shrink:0;background:${bg};color:${fg}">${initials(l.resp)}</div><span style="font-size:12px">${l.resp.split(' ')[0]}</span></div></td>
+      <td><span class="badge ${sClass(l.status)}"><select class="status-select" onchange="changeStatus(${ri},this.value)" style="color:inherit">${['Novo','Em contato','Negociando','Ganho','Perdido'].map(s=>`<option${s===l.status?' selected':''}>${s}</option>`).join('')}</select></span></td>
+      <td style="font-size:12px;color:var(--text2)">${daysSince(l.data)}d</td>
+      <td><input class="obs-input" value="${(l.obs||'').replace(/"/g,'&quot;')}" placeholder="Nota..." onchange="changeObs(${ri},this.value)"/></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTeam(){
+  const ni=rrIndex%team.length;
+  document.getElementById('teamGrid').innerHTML=team.map((v,i)=>{
+    const[bg,fg]=teamColor(v.name);
+    const count=leads.filter(l=>l.resp===v.name).length;
+    const g=leads.filter(l=>l.resp===v.name&&l.status==='Ganho').length;
+    return `<div class="team-card${i===ni?' next-up':''}"><div class="avatar" style="background:${bg};color:${fg};margin-bottom:10px">${initials(v.name)}</div><div style="font-size:14px;font-weight:600;margin-bottom:2px">${v.name}</div><div style="font-size:12px;color:var(--text2)">${count} leads · ${g} ganhos</div>${i===ni?'<span class="next-label">próximo</span>':''}</div>`;
+  }).join('');
+}
+
+function renderLinks(){
+  const base=window.location.origin+window.location.pathname;
+  document.getElementById('linksList').innerHTML=team.map(v=>{
+    const url=base+'?v='+v.slug;
+    return `<div style="margin-bottom:10px"><div style="font-size:13px;font-weight:500;margin-bottom:4px">${v.name}</div><div class="link-chip"><code>${url}</code><button class="copy-btn" onclick="copyLink('${url}',this)">Copiar</button></div></div>`;
+  }).join('');
+}
+
+function copyLink(url,btn){navigator.clipboard.writeText(url).then(()=>{btn.textContent='✓ Copiado';setTimeout(()=>btn.textContent='Copiar',2000);});}
+
+function renderVendedor(){
+  const mine=leads.filter(l=>l.resp===currentVendedor);
+  document.getElementById('vTitle').textContent=currentVendedor.split(' ')[0];
+  document.getElementById('vSubtitle').textContent=mine.length+' lead'+(mine.length!==1?'s':'')+' atribuído'+(mine.length!==1?'s':'');
+  renderVMetrics();renderVLeads();
+}
+
+function renderVMetrics(){
+  const mine=leads.filter(l=>l.resp===currentVendedor);
+  const g=mine.filter(l=>l.status==='Ganho').length;
+  const conv=mine.length?Math.round(g/mine.length*100):0;
+  const at=mine.filter(l=>!['Ganho','Perdido'].includes(l.status)).length;
+  const avg=mine.length?Math.round(mine.reduce((a,l)=>a+daysSince(l.data),0)/mine.length):0;
+  document.getElementById('vMetrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Meus leads</div><div class="metric-value">${mine.length}</div></div>
+    <div class="metric"><div class="metric-label">Ganhos</div><div class="metric-value" style="color:var(--success-fg)">${g}</div></div>
+    <div class="metric"><div class="metric-label">Conversão</div><div class="metric-value">${conv}%</div></div>
+    <div class="metric"><div class="metric-label">Em aberto</div><div class="metric-value" style="color:var(--purple-fg)">${at}</div></div>
+    <div class="metric"><div class="metric-label">Tempo médio</div><div class="metric-value">${avg}<span style="font-size:14px;font-weight:400">d</span></div></div>`;
+}
+
+function setVFilter(s,btn){vStatusFilter=s;document.querySelectorAll('#vFilterRow .fpill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderVLeads();}
+
+function renderVLeads(){
+  let data=leads.filter(l=>l.resp===currentVendedor);
+  if(vStatusFilter)data=data.filter(l=>l.status===vStatusFilter);
+  document.getElementById('vLeadsBody').innerHTML=data.map(l=>{
+    const ri=leads.indexOf(l);
+    return `<tr>
+      <td style="font-weight:500">${l.nome}</td>
+      <td><a class="tel" href="https://wa.me/${l.phone}" target="_blank">${fmtPhone(l.phone)}</a></td>
+      <td><span class="badge ${sClass(l.status)}"><select class="status-select" onchange="changeStatusV(${ri},this.value)" style="color:inherit">${['Novo','Em contato','Negociando','Ganho','Perdido'].map(s=>`<option${s===l.status?' selected':''}>${s}</option>`).join('')}</select></span></td>
+      <td style="font-size:12px;color:var(--text2)">${daysSince(l.data)}d</td>
+      <td><input class="obs-input" value="${(l.obs||'').replace(/"/g,'&quot;')}" placeholder="Adicionar observação..." onchange="changeObs(${ri},this.value)"/></td>
+    </tr>`;
+  }).join('');
+}
+
+function changeStatus(idx,val){leads[idx].status=val;save();renderGLeads();renderGMetrics();renderFunnel();renderRanking();}
+function changeStatusV(idx,val){leads[idx].status=val;save();renderVendedor();}
+function changeObs(idx,val){leads[idx].obs=val;save();}
+
+// IMPORT — só adiciona novos, ignora duplicatas por telefone
+function importCSV(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').filter(l=>l.trim());
+    if(lines.length<2){toast('CSV vazio ou inválido.');return;}
+    const sep=lines[0].includes(';')?';':',';
+    const header=lines[0].toLowerCase().split(sep).map(h=>h.trim().replace(/['"]/g,'').replace(/^\uFEFF/,''));
+    const iNome=header.findIndex(h=>h==='fn'||h.includes('nome')||h.includes('name'));
+    const iEmail=header.findIndex(h=>h.includes('email'));
+    const iPhone=header.findIndex(h=>h.includes('phone')||h.includes('tel')||h.includes('fone')||h.includes('whatsapp'));
+    const iCanal=header.findIndex(h=>h.includes('canal')||h.includes('origem'));
+    const existingPhones=new Set(leads.map(l=>phoneKey(l.phone)));
+    let added=0,dupes=0;
+    lines.slice(1).forEach(line=>{
+      const cols=line.split(sep).map(c=>c.trim().replace(/^"|"$/g,''));
+      const nome=cap(iNome>=0?cols[iNome]:cols[0]);
+      const phone=(iPhone>=0?cols[iPhone]:'').replace(/\D/g,'');
+      if(!nome)return;
+      const key=phoneKey(phone);
+      if(key&&existingPhones.has(key)){dupes++;return;}
+      if(key)existingPhones.add(key);
+      leads.push({nome,email:iEmail>=0?cols[iEmail]:'',phone,canal:iCanal>=0?cols[iCanal]:'CSV',data:today(),resp:nextResp(),status:'Novo',obs:''});
+      added++;
+    });
+    save();renderGestor();
+    toast(`${added} lead${added!==1?'s':''} adicionado${added!==1?'s':''}${dupes?` · ${dupes} duplicata${dupes!==1?'s':''} ignorada${dupes!==1?'s':''}`:''}`);
+  };
+  reader.readAsText(file,'UTF-8');
+  input.value='';
+}
+
+function exportCSV(){
+  if(!leads.length){toast('Nenhum lead para exportar.');return;}
+  const rows=[['Nome','Telefone','Email','Canal','Data','Responsável','Status','Observação']];
+  leads.forEach(l=>rows.push([l.nome,l.phone,l.email||'',l.canal,l.data,l.resp,l.status,l.obs||'']));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='leads_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+function openLeadModal(idx=null){
+  editingIdx=idx;buildGSelects();
+  document.getElementById('modalTitle').textContent=idx!==null?'Editar lead':'Novo lead';
+  if(idx!==null){const l=leads[idx];document.getElementById('mNome').value=l.nome;document.getElementById('mTelefone').value=l.phone;document.getElementById('mEmail').value=l.email||'';document.getElementById('mCanal').value=l.canal;document.getElementById('mResp').value=l.resp;}
+  else{['mNome','mTelefone','mEmail'].forEach(id=>document.getElementById(id).value='');}
+  document.getElementById('leadModal').classList.add('open');
+}
+function closeLeadModal(){document.getElementById('leadModal').classList.remove('open');editingIdx=null;}
+function saveLead(){
+  const nome=document.getElementById('mNome').value.trim();
+  if(!nome){toast('Informe o nome.');return;}
+  const obj={nome,phone:document.getElementById('mTelefone').value.trim().replace(/\D/g,''),email:document.getElementById('mEmail').value.trim(),canal:document.getElementById('mCanal').value,resp:document.getElementById('mResp').value,data:today(),status:'Novo',obs:''};
+  if(editingIdx!==null){leads[editingIdx]={...leads[editingIdx],...obj};}
+  else{obj.resp=nextResp();leads.push(obj);}
+  save();renderGestor();closeLeadModal();toast('Lead salvo.');
+}
+
+function openTeamModal(){
+  document.getElementById('tNome').value='';document.getElementById('tSlug').value='';document.getElementById('slugPreview').textContent='…';
+  document.getElementById('teamModal').classList.add('open');
+}
+function closeTeamModal(){document.getElementById('teamModal').classList.remove('open');}
+document.getElementById('tNome').addEventListener('input',function(){const s=slugify(this.value.split(' ')[0]);document.getElementById('tSlug').value=s;document.getElementById('slugPreview').textContent=s||'…';});
+document.getElementById('tSlug').addEventListener('input',function(){document.getElementById('slugPreview').textContent=slugify(this.value)||'…';});
+function saveVendedor(){
+  const nome=document.getElementById('tNome').value.trim();
+  const slug=slugify(document.getElementById('tSlug').value||nome.split(' ')[0]);
+  if(!nome){toast('Informe o nome.');return;}
+  if(team.find(t=>t.slug===slug)){toast('Slug já existe, escolha outro.');return;}
+  team.push({name:nome,slug});save();buildGSelects();renderTeam();renderLinks();closeTeamModal();
+  toast(nome+' adicionado — link: ?v='+slug);
+}
+
+document.getElementById('leadModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLeadModal();});
+document.getElementById('teamModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeTeamModal();});
+
+route();
+</script>
+</body>
+</html>
